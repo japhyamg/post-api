@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PostRequest;
+use App\Models\Post;
 use Illuminate\Http\Request;
 
 class PostController extends Controller
@@ -13,17 +15,8 @@ class PostController extends Controller
      */
     public function index()
     {
-        dd('here');
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
+        $posts = Post::all();
+        return response($posts);
     }
 
     /**
@@ -32,9 +25,17 @@ class PostController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(PostRequest $request)
     {
-        //
+        if (isset($request->validator) && $request->validator->fails()) {
+            return response()->json([
+                'status'=> 'error',
+                'message'   => 'The given data was invalid.',
+                'errors'    => $request->validator->errors()
+            ]);
+        }
+
+        return Post::create($request->validated());
     }
 
     /**
@@ -45,18 +46,18 @@ class PostController extends Controller
      */
     public function show($id)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
+        $post = Post::find($id);
+        if($post){
+            return response()->json([
+                'status'    => 'success',
+                'data' => $post
+            ]);
+        }
+        return response()->json([
+            'error_code'=> '404',
+            'message'   => 'Failed to find requested post.',
+            'status'    => 'error'
+        ]);
     }
 
     /**
@@ -66,9 +67,58 @@ class PostController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(PostRequest $request, $id)
     {
-        //
+        $post = Post::find($id);
+        if($post){
+            if (isset($request->validator) && $request->validator->fails()) {
+                return response()->json([
+                    'status'=> 'error',
+                    'message'   => 'The given data was invalid.',
+                    'errors'    => $request->validator->errors()
+                ]);
+            }
+
+            $post->update($request->all());
+
+            return response()->json([
+                'status'    => 'success',
+                'data' => $post
+            ]);
+        }
+
+        return response()->json([
+                    'error_code'=> '404',
+                    'message'   => 'Failed to find requested post.',
+                    'status'    => 'error'
+                ]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function upvote($id)
+    {
+        $post = Post::find($id);
+        if($post){
+            $post->upvotes++;
+            $post->save();
+
+            return response()->json([
+                'status'    => 'success',
+                'data' => $post
+            ]);
+        }
+
+        return response()->json([
+                    'error_code'=> '404',
+                    'message'   => 'Failed to find requested post.',
+                    'status'    => 'error'
+                ]);
     }
 
     /**
@@ -79,6 +129,20 @@ class PostController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $post = Post::find($id);
+        if($post){
+            $post->delete();
+
+            return response()->json([
+                'status'    => 'success',
+                'data' => $post
+            ]);
+        }
+
+        return response()->json([
+                    'error_code'=> '404',
+                    'message'   => 'Failed to find requested post.',
+                    'status'    => 'error'
+                ]);
     }
 }
